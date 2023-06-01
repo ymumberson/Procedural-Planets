@@ -27,7 +27,7 @@ public class TerrainFace
         Vector3[] vertices = new Vector3[resolution * resolution];
         int[] triangles = new int[(resolution - 1) * (resolution - 1) * 6];
         int triIndex = 0;
-        Vector2[] uv = mesh.uv;
+        Vector2[] uv = (mesh.uv.Length == vertices.Length) ? mesh.uv : new Vector2[vertices.Length];
 
         for (int y=0; y<resolution; ++y)
         {
@@ -37,7 +37,9 @@ public class TerrainFace
                 Vector2 percent = new Vector2(x,y) / (resolution-1);
                 Vector3 pointOnUnitCube = localUp + (percent.x - 0.5f) * 2 * axisA + (percent.y - 0.5f) * 2 * axisB;
                 Vector3 pointOnUnitSphere = pointOnUnitCube.normalized;
-                vertices[index] = shapeGenerator.CalculatePointOnPlanet(pointOnUnitSphere);
+                float unscaledElevation = shapeGenerator.CalculateUnscaledElevation(pointOnUnitSphere);
+                vertices[index] = pointOnUnitSphere * shapeGenerator.GetScaledElevation(unscaledElevation);
+                uv[index].y = unscaledElevation;
 
                 if (x != resolution-1 && y != resolution-1)
                 {
@@ -57,16 +59,12 @@ public class TerrainFace
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
-        if (mesh.uv.Length == uv.Length)
-        {
-            mesh.uv = uv;
-        }
-        
+        mesh.uv = uv;
     }
 
     public void UpdateUVs(ColourGenerator colourGenerator)
     {
-        Vector2[] uv = new Vector2[resolution * resolution];
+        Vector2[] uv = mesh.uv;
         for (int y = 0; y < resolution; ++y)
         {
             for (int x = 0; x < resolution; ++x)
@@ -76,7 +74,7 @@ public class TerrainFace
                 Vector3 pointOnUnitCube = localUp + (percent.x - 0.5f) * 2 * axisA + (percent.y - 0.5f) * 2 * axisB;
                 Vector3 pointOnUnitSphere = pointOnUnitCube.normalized;
 
-                uv[index] = new Vector2(colourGenerator.BiomePercentFromPoint(pointOnUnitSphere), 0);
+                uv[index].x = colourGenerator.BiomePercentFromPoint(pointOnUnitSphere);
             }
         }
         mesh.uv = uv;
